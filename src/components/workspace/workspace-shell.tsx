@@ -17,6 +17,7 @@ import {
   RIGHT_MAX_WIDTH,
   RIGHT_MIN_WIDTH,
   useWorkspaceLayout,
+  type LeftView,
   type RightView,
 } from "@/lib/workspace/layout-state";
 import { ResizeHandle } from "./resize-handle";
@@ -118,6 +119,7 @@ interface WorkspaceViewportContextValue {
   terminalVisible: boolean;
   toggleLeft: (opener?: HTMLElement | null) => void;
   toggleRight: (opener?: HTMLElement | null) => void;
+  openLeftView: (view: LeftView, opener?: HTMLElement | null) => void;
   openRightTool: (view: RightView, opener?: HTMLElement | null) => void;
   toggleTerminal: () => void;
   toggleFocusMode: () => void;
@@ -133,6 +135,10 @@ export function useWorkspaceViewport(): WorkspaceViewportContextValue {
     throw new Error("useWorkspaceViewport requires WorkspaceShell");
   }
   return context;
+}
+
+export function useOptionalWorkspaceViewport(): WorkspaceViewportContextValue | null {
+  return useContext(WorkspaceViewportContext);
 }
 
 export interface WorkspaceShellProps {
@@ -298,6 +304,24 @@ export function WorkspaceShell({
     [isDesktop, compactDrawer, dispatch],
   );
 
+  const openLeftView = useCallback(
+    (view: LeftView, opener?: HTMLElement | null) => {
+      dispatch({ type: "set-left-view", view });
+      if (isDesktop) {
+        if (!state.leftOpen || state.focusMode) {
+          dispatch({ type: "set-open", panel: "left", value: true });
+        }
+        return;
+      }
+
+      if (compactDrawer !== "left") {
+        captureOpener(opener);
+        setCompactDrawer("left");
+      }
+    },
+    [isDesktop, compactDrawer, state.leftOpen, state.focusMode, dispatch],
+  );
+
   const openRightTool = useCallback(
     (view: RightView, opener?: HTMLElement | null) => {
       if (isDesktop) {
@@ -354,6 +378,7 @@ export function WorkspaceShell({
       terminalVisible: effectiveTerminalOpen,
       toggleLeft,
       toggleRight,
+      openLeftView,
       openRightTool,
       toggleTerminal,
       toggleFocusMode,
@@ -368,6 +393,7 @@ export function WorkspaceShell({
       effectiveTerminalOpen,
       toggleLeft,
       toggleRight,
+      openLeftView,
       openRightTool,
       toggleTerminal,
       toggleFocusMode,

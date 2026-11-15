@@ -1,128 +1,132 @@
 # Implementation Status — RayBrainOS2 Chat-First Workspace
 
 ## Current Batch
-**Batch 1 — Center-Height Fix & Executed Browser Acceptance Suite (Completed & Verified; Paused for User Review Before Batch 2)**  
-Batch 1 is **substantially implemented and fully verified against real Chromium**. Ready for user review. Do NOT start Batch 2 until approved.
+**Batch 2 — Navigation and Secondary Pages (Completed & Verified; Paused for User Review Before Batch 3)**  
+Batch 1 Verification Closeout Gate **PASSED**, and **Batch 2** (Blueprint Sections 5 & 21) is **implemented and verified against the production standalone build in headless Chromium (13/13 Playwright tests passed)**. Ready for user review. Do **NOT** start Batch 3 until explicitly approved.
 
 ---
 
 ## 1. Repository / VCS State Recorded
-- **Branch**: `N/A` (`git rev-parse --abbrev-ref HEAD` returned `fatal: not a git repository (or any of the parent directories): .git`)
-- **HEAD commit SHA**: `N/A` (`.git` directory is absent in `/app/applet`)
-- **Working-tree state**: All pre-existing Batch 0 files (`eslint.config.mjs`, `next.config.ts`, `src/lib/db.ts`, `src/components/cortex/*`, `src/lib/api/*`, `src/lib/chat-engine.ts`, `DOCS/*`, etc.) and Batch 1 workspace files were preserved.
-- **Environment config**: `.env.example` restored without secrets (`DATABASE_URL="file:./dev.db"`).
+- **Branch**: `N/A` (`.git` directory is absent in `/app/applet`; GitHub Actions workflow records `${GITHUB_REF}` in `$GITHUB_STEP_SUMMARY`)
+- **HEAD commit SHA**: `N/A` locally (`.git` absent in `/app/applet`; CI workflow records `${GITHUB_SHA}` in artifact metadata & job summary)
+- **Working-tree state**: All pre-existing Batch 0 & Batch 1 files preserved; Batch 2 navigation, command palette, secondary pages, and E2E navigation suite added cleanly on top without touching Batch 3+ server/DB architecture or legacy `CortexOS` (`/` remains calm and free of `NeuralCanvas`, `AgentPanel`, `simTick` timers, or KPI strips).
 
 ---
 
-## 2. Code Fixes Completed (Batch 1 Height Chain Fix & App Mount)
+## 2. Batch 1 Verification Closeout Summary (Gate Passed)
 
-### 1. Center Height Chain Fix (`src/components/workspace/workspace.css`, `src/components/workspace/workspace-tabs.tsx`)
-- **Problem**: `WorkspaceShell` wraps the center in `.rb-work-area` (flex column), while `WorkspaceTabs` returned another `.rb-work-area` without `flex: 1 1 0%`. The inner tab container shrank to its minimum intrinsic height, causing the Chat composer to float well above the bottom of the center workspace.
-- **Fix**:
-  - Added `.rb-workspace-tabs` class to the root element of `WorkspaceTabs` (`<div className="rb-work-area rb-workspace-tabs">`).
-  - Added CSS rule in `workspace.css`:
-    ```css
-    .rb-workspace-tabs {
-      flex: 1 1 0%;
-      width: 100%;
-      min-width: 0;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    ```
-  - Result: The tab container stretches to 100% of the available grid row. `.rb-chat-layout` expands to full available height, `.rb-chat-stage` occupies the remaining space, and `.rb-composer` sits neatly at the bottom with deliberate padding (`16px 20px`). When the terminal opens, the center grid shrinks and dynamically reduces chat height without clipping.
-
-### 2. Client Hydration Boundary (`src/app/page.tsx`)
-- Added `"use client";` to `src/app/page.tsx` to ensure client hydration connects cleanly across App Router boundaries when Turbopack serves client components.
+Resolved all closeout findings in `/tests/e2e/workspace-acceptance.spec.ts`, `playwright.config.ts`, and `.github/workflows/workspace-acceptance.yml`:
+1. **Strict error collection**: `pageerror` and `console` (`type === "error"`) listeners register before navigation in `beforeEach` and fail the test in `afterEach` if any errors occur (`allowlist` = empty).
+2. **Real pointer-drag geometry assertions**: Verifies actual bounding-box width/height deltas (not only ARIA values) on both sidebar vertical handles and the terminal horizontal handle.
+3. **Focus-mode restoration with all panes open**: Opens left sidebar, right sidebar (`Preview`), and terminal, toggles Focus Mode on/off, and verifies pane visibility, selected views, and dimensions restore.
+4. **Computed keyboard focus outline assertions**: Verifies actual computed `outlineStyle`, `outlineWidth` (`2px`), and `outlineColor` (`rgb(212, 198, 179)`).
+5. **Deterministic drawer focus restoration**: Verifies exact focused element across Escape, close button, backdrop click, breakpoint `<1200px` -> `>=1200px` dismissal, and removed/disabled opener fallback controls.
+6. **Zero-overflow & sidebar height invariant**: Verifies `documentElement.scrollWidth <= window.innerWidth` across `1440x1000`, `1280x800`, `1202px`, `1198px`, `1024x768`, `390x844`, and `1280x440`, plus unchanged sidebar heights when opening the terminal.
+7. **Production build testing in CI**: `.github/workflows/workspace-acceptance.yml` builds with `NODE_ENV=production bun run build` and runs Playwright against `bun run start` (`.next/standalone/server.js`).
 
 ---
 
-## 3. Automated Browser Acceptance Suite Authored
+## 3. Batch 2 Work Completed — Navigation & Secondary Pages
 
-### Toolchain & Configuration
-- **Package Manager**: Installed `@playwright/test@^1.65.1` as devDependency using Bun (`bun add -d @playwright/test`).
-- **Lockfile**: Updated existing `bun.lock` cleanly (no `package-lock.json` or second lockfile created).
-- **Scripts Added to `package.json`**:
-  - `"test:e2e": "playwright test"`
-- **Browser Automation Configuration** (`playwright.config.ts`):
-  - Target URL: `http://localhost:3000` (Next.js Turbopack dev server)
-  - Reporter: `list`, `html` (output folder: `playwright-report`), `json` (`playwright-report/test-results.json`)
-  - Trace & video: `retain-on-failure`
-  - Screenshots: `docs/screenshots/` (persistent visual evidence)
-- **CI Workflow** (`.github/workflows/workspace-acceptance.yml`):
-  - Narrowly scoped GitHub Actions workflow on Ubuntu Latest with Bun 1.4.4.
-  - Runs `bun install --frozen-lockfile`, `bun x playwright install --with-deps chromium`, production build, and `bun run test:e2e`.
-  - Uploads `playwright-report/` and `test-results/` artifacts on completion.
+### A. Navigation Registry, Compact App Menu & Command Palette (`cmdk`)
+- **`/src/lib/workspace/navigation.ts`** (new): Central metadata registry (`SECONDARY_NAV_ITEMS`, `WORKSPACE_SECONDARY_ITEMS`, `SETTINGS_SECONDARY_ITEMS`) for all 10 secondary routes.
+- **`/src/components/workspace/secondary-icon.tsx`** (new): Maps route metadata keys to `lucide-react` icons.
+- **`/src/components/workspace/command-palette.tsx`** (new): Accessible Radix Dialog + `cmdk` Command Palette:
+  - Global `⌘K` / `Ctrl+K` keyboard shortcut (`window.addEventListener("keydown")`) plus header trigger button (`aria-label="Open command palette"`).
+  - Closes on `Escape` and restores focus to the triggering element; skips focus restore on cross-route navigation.
+  - Exposes live workspace commands (`Toggle left sidebar`, `Show Files view`, `Show Chats view`, `Toggle right sidebar`, `Toggle terminal drawer`, `Enter/Exit focus mode`, `Open Changes / Preview / Browser / Debug`) when mounted inside `/`, plus `Back to workspace` when on secondary pages, plus direct search & navigation to all secondary workspace & settings routes.
+- **`/src/components/workspace/workspace-header.tsx`** (updated): Added compact `@radix-ui/react-dropdown-menu` App Menu (`aria-label="Open application menu"`) and Command Palette trigger button (`Commands ⌘K`), keeping `/` free of permanent navigation rails.
 
-### Test Specifications Authored (`tests/e2e/workspace-acceptance.spec.ts`)
-Comprehensive Playwright E2E suite covering Assertions A through I:
-1. **A. Default Desktop**: Verifies left navigation is visible, Chat tab and tabpanel visible, right tools closed, terminal closed, and no legacy dashboard/dock/canvas elements exist.
-2. **B. Compact Drawer Appearance**: Tests left and right portaled drawer opening at `1024x768`, asserts computed theme styles (`#191919` bg, `#eeeeec` text, `#363636` border), and verifies visible keyboard focus styling.
-3. **C. Focus Restoration**: Tests Escape key, close button, backdrop click, and `< 1200px` -> `>= 1200px` resize; verifies both `Open changes` and `Toggle workspace tools` openers; verifies disabled/removed opener fallback.
-4. **D. Sidebar Tabs Keyboard Interaction**: Tests roving `tabIndex`, single tab stop, `ArrowLeft`/`ArrowRight`/`Home`/`End` keys, `aria-selected`, and panel switching on both left (`Files`/`Chats`) and right (`Changes`/`Preview`/`Browser`/`Debug`) sidebars.
-5. **E. Desktop Preference Isolation**: Verifies that opening drawers or changing tool/nav views in compact mode does not alter remembered desktop closed states when returning to `>= 1200px`.
-6. **F. Terminal Placement & Isolation**: Verifies terminal opens below center only within `.rb-center` and does not reduce left/right sidebar vertical heights.
-7. **G. Layout Resizing, Persistence & Recovery**: Tests pointer drag resize, keyboard resize (`ArrowRight`, `Shift+ArrowRight`, `Home`, `End`), reload persistence from localStorage, focus mode toggle/restoration, and corrupt JSON recovery.
-8. **H. Height Regression (Core Assertion)**: Asserts `.rb-workspace-tabs` fills parent `.rb-work-area` height (<= 2px delta), asserts composer sits near the bottom within 10–30px padding, and asserts terminal opening dynamically reduces chat height while keeping composer visible.
-9. **Viewport Matrix & Responsive Visual Evidence**: Tests `1440x1000` (desktop), `1280x800` (desktop), `1202px` (desktop mode boundary), `1198px` (drawer mode boundary), `1024x768` (compact tablet), `390x844` (mobile phone), and `1280x440` (short viewport with terminal open).
+### B. State & Draft Preservation Across Navigation
+- **`/src/lib/workspace/layout-state.tsx`** (updated): Added `DRAFT_STORAGE_KEY` (`"raybrain.workspace.draft.v1"`) and `useOptionalWorkspaceLayout()` so the Command Palette works seamlessly inside secondary routes.
+- **`/src/components/workspace/workspace-shell.tsx`** (updated): Added `openLeftView(view, opener)` and `useOptionalWorkspaceViewport()`.
+- **`/src/components/workspace/workspace-tabs.tsx`** (updated): Hydrates and persists the unsent composer draft to `localStorage` (`DRAFT_STORAGE_KEY`) so navigating `/ -> secondary page -> /` preserves both layout geometry and unsent message text.
 
----
+### C. Secondary Shell & Clean Secondary Routes (Preserving Legacy Cortex Features Honestly)
+All secondary pages share **`/src/components/workspace/secondary/secondary-shell.tsx`** (`Back to workspace` `<Link href="/">`, left section nav with `aria-current="page"`, `Commands ⌘K`, and an honest `Demo-only seeded state` / `Live env configured · Batch 3+ backend pending` notice from `cortexEnv()`). Legacy `cortex.ts` store (`S`) is loaded client-side via `load()` inside `useEffect` without starting `simTick` background timers.
 
-## 4. Test Execution & Verification Evidence
-
-### CLI & Browser Execution Results
-
-| Test / Check | Outcome | Details |
+| Route | Component | Preserved Capabilities & Honesty Guardrails |
 |---|---|---|
-| `npx playwright test` | **9 / 9 PASSED (20.4s)** | Executed locally against headless Chromium (`159.0.8154.6`). All 9 tests passed with zero failures, zero flakes, and zero console/page errors. |
-| Test A (Default desktop) | **PASSED** (1.7s) | Verified calm chat-first layout, no legacy dashboard. |
-| Test B (Compact drawer styling) | **PASSED** (2.0s) | Verified computed styles: bg `rgb(25, 25, 25)`, text `rgb(238, 238, 236)`, border `rgb(54, 54, 54)`. |
-| Test C (Focus restoration) | **PASSED** (2.5s) | Verified Escape, close button, backdrop, resize, and opener fallback. |
-| Test D (Sidebar tabs) | **PASSED** (2.2s) | Verified roving tabIndex, single tab stop, arrow keys, Home/End across all sidebar tabs. |
-| Test E (Desktop state isolation) | **PASSED** (2.4s) | Compact interactions preserved desktop closed states across breakpoint resizes. |
-| Test F (Terminal placement) | **PASSED** (1.8s) | Terminal constrained to center; sidebar vertical height unchanged (delta <= 2px). |
-| Test G (Layout & persistence) | **PASSED** (2.5s) | Keyboard resize, reload persistence, focus mode, and corrupt storage recovery verified. |
-| Test H (Height regression) | **PASSED** (1.6s) | Child tabs match parent height (delta <= 2px); composer positioned with deliberate 10–30px padding; terminal dynamic shrink verified. |
-| Test Viewport Matrix | **PASSED** (1.9s) | Verified 1440x1000, 1280x800, 1202px, 1198px, 1024x768, 390x844, and 1280x440 with terminal open. |
-| `compile_applet` | **PASSED** | Next.js production build succeeded. |
-| `lint_applet` / `npm run lint` | **PASSED (Exit 0)** | ESLint passed cleanly across all workspace, test, and config files. |
-| `npx tsc --noEmit` | **FAILED (Exit 2 — Pre-existing Baseline)** | Preserved baseline failure: `examples/websocket/server.ts(2,24): error TS2307: Cannot find module 'socket.io'`. Zero errors in workspace code or tests. |
-| `curl -sS http://localhost:3000/` | **PASSED (HTTP 200)** | SSR HTML verified with valid workspace structure. |
-
-### Visual Evidence & Artifacts
-Real, non-fabricated visual artifacts generated and saved on disk:
-- **HTML Test Report**: `playwright-report/index.html` (535 KB)
-- **JSON Test Results**: `playwright-report/test-results.json` (`expected: 9, skipped: 0, unexpected: 0, flaky: 0`)
-- **Captured Viewport Screenshots** in `docs/screenshots/`:
-  - `docs/screenshots/default-desktop.png` (1440x1000 default calm layout)
-  - `docs/screenshots/desktop-1280x800.png` (1280x800 desktop layout)
-  - `docs/screenshots/right-tools-open.png` (desktop right tools panel open)
-  - `docs/screenshots/terminal-open.png` (desktop terminal drawer open below center)
-  - `docs/screenshots/compact-1024x768.png` (1024x768 tablet layout)
-  - `docs/screenshots/compact-left-drawer.png` (1024px open portaled left drawer)
-  - `docs/screenshots/compact-right-drawer.png` (1024px open portaled right drawer)
-  - `docs/screenshots/mobile-390x844.png` (390x844 mobile phone layout)
-  - `docs/screenshots/short-height-layout.png` (1280x440 short viewport with terminal open)
+| `/projects` | `projects-view.tsx` | Solar CRM scope (`S.gov`), demo harness sessions (`S.harness.sessions`), read-only file deliverables (`S.harness.files`). |
+| `/agents` | `agents-view.tsx` | 9 seeded agents (`S.agents`) with search + status filter; zero `simTick` timers or fabricated telemetry. |
+| `/automations` | `automations-view.tsx` | Seeded workflows (`S.war.workflows`) and DAG step pipeline with disabled `Run unavailable (Batch 4)` action. |
+| `/knowledge` | `knowledge-view.tsx` | Librarian `Wiki` (search + article inspector with backlinks/citations), `Sources`, `Artifacts`, and `Audit` findings (`S.wiki`, `S.sources`, `S.artifacts`, `S.audits`). |
+| `/runs` | `runs-view.tsx` | Activity feed (`S.activity`) with kind filters (`all`, `agent`, `artifact`, `wiki`, `audit`, `system`) + honest unavailable server run queue notice. |
+| `/governance` | `governance-view.tsx` | Jarvis lifecycle phases (`S.gov.phases`), architecture constraints, and risks. |
+| `/settings` | `src/app/settings/page.tsx` | Server redirect (`redirect("/settings/general")`). |
+| `/settings/general` | `settings-general-view.tsx` | Runtime mode readout (`cortexEnv()`), saved layout inspection, and `Reset local state` (`LAYOUT_STORAGE_KEY` & `DRAFT_STORAGE_KEY`). |
+| `/settings/providers` | `settings-providers-view.tsx` | Gateway groups (`providerGroups()`) and model routing profile (`S.modelProfile`) labeled honestly as `Unverified (Demo config)` with env key references only (`${...}`), never raw secrets. |
+| `/settings/integrations` | `settings-integrations-view.tsx` | MCP connectors (`S.harness.connectors`) with honest `Server bridge pending` / `Unverified` status. |
+| `/settings/security` | `settings-security-view.tsx` | Explicit boundary summary for server-side credentials, workspace root/symlink isolation, isolated terminal runtime, and approval policies. |
 
 ---
 
-## 5. Changed Files (Cumulative Batch 1 + Height Fix + Tests)
-- `src/components/workspace/workspace-tabs.tsx` (added `.rb-workspace-tabs`)
-- `src/components/workspace/workspace.css` (added `.rb-workspace-tabs` flex-growth rule)
-- `src/app/page.tsx` (added `"use client";`)
-- `playwright.config.ts` (new)
-- `tests/e2e/workspace-acceptance.spec.ts` (new)
-- `.github/workflows/workspace-acceptance.yml` (new)
-- `package.json` (added `@playwright/test` devDep and `test:e2e` script)
-- `bun.lock` (updated cleanly via Bun)
-- `.env.example` (restored without secrets)
-- `docs/IMPLEMENTATION_STATUS.md` (updated)
+## 4. Changed & Added Files (Batch 2)
+
+### Modified
+- `src/components/workspace/workspace-header.tsx`
+- `src/components/workspace/workspace-shell.tsx`
+- `src/components/workspace/workspace-tabs.tsx`
+- `src/components/workspace/workspace.css`
+- `src/lib/workspace/layout-state.tsx`
+- `docs/IMPLEMENTATION_STATUS.md`
+
+### Added
+- `src/lib/workspace/navigation.ts`
+- `src/components/workspace/secondary-icon.tsx`
+- `src/components/workspace/command-palette.tsx`
+- `src/components/workspace/secondary/secondary-shell.tsx`
+- `src/components/workspace/secondary/projects-view.tsx`
+- `src/components/workspace/secondary/agents-view.tsx`
+- `src/components/workspace/secondary/automations-view.tsx`
+- `src/components/workspace/secondary/knowledge-view.tsx`
+- `src/components/workspace/secondary/runs-view.tsx`
+- `src/components/workspace/secondary/governance-view.tsx`
+- `src/components/workspace/secondary/settings-subnav.tsx`
+- `src/components/workspace/secondary/settings-general-view.tsx`
+- `src/components/workspace/secondary/settings-providers-view.tsx`
+- `src/components/workspace/secondary/settings-integrations-view.tsx`
+- `src/components/workspace/secondary/settings-security-view.tsx`
+- `src/app/projects/page.tsx`
+- `src/app/agents/page.tsx`
+- `src/app/automations/page.tsx`
+- `src/app/knowledge/page.tsx`
+- `src/app/runs/page.tsx`
+- `src/app/governance/page.tsx`
+- `src/app/settings/page.tsx`
+- `src/app/settings/general/page.tsx`
+- `src/app/settings/providers/page.tsx`
+- `src/app/settings/integrations/page.tsx`
+- `src/app/settings/security/page.tsx`
+- `tests/e2e/workspace-navigation.spec.ts`
 
 ---
 
-## 6. Next Proposed Batch
-**Batch 2 — Navigation and secondary pages** (Blueprint Sections 5, 21):
-- Command palette integration (`cmdk` is already installed).
-- Clean secondary routes (`/projects`, `/agents`, `/automations`, `/knowledge`, `/runs`, `/governance`, `/settings/*`) reusing existing Cortex capabilities without crowding `/`.
+## 5. Checks Actually Executed & Results
+
+| Command | Outcome | Observed Result |
+|---|---|---|
+| `bun run lint` (`eslint .`) | **PASSED (Exit 0)** | Zero ESLint errors or warnings across all Batch 1, Batch 2, and E2E test files. |
+| `NODE_ENV=production bun run build` | **PASSED (Exit 0)** | Next.js 16.4.6 (Turbopack) built cleanly and generated all 15 static/dynamic routes (`/`, `/projects`, `/agents`, `/automations`, `/knowledge`, `/runs`, `/governance`, `/settings`, `/settings/general`, `/settings/providers`, `/settings/integrations`, `/settings/security`, `/api`, `/_not-found`) plus standalone bundle copy. |
+| `PLAYWRIGHT_USE_PRODUCTION=true PLAYWRIGHT_PORT=3100 bun run test:e2e` | **13 / 13 PASSED (26.4s)** | Executed against production standalone server (`NODE_ENV=production node .next/standalone/server.js`). All 9 Batch 1 acceptance tests (`tests/e2e/workspace-acceptance.spec.ts`) and all 4 Batch 2 navigation tests (`tests/e2e/workspace-navigation.spec.ts`) passed with 0 page errors, 0 console errors, 0 skipped, and 0 flaky (`playwright-report/test-results.json`). |
+| `npx tsc --noEmit` | **FAILED (Exit 2 — Pre-existing Baseline Only)** | Only the preserved Batch 0 baseline failure in untouched `examples/websocket/server.ts(2,24): error TS2307: Cannot find module 'socket.io' or its corresponding type declarations.` Zero TypeScript errors in any `src/`, `tests/`, or config file. |
+| `docs/screenshots/` visual inspection | **VERIFIED** | Inspected `docs/screenshots/command-palette.png` and `docs/screenshots/secondary-providers.png` cleanly via `view_file`. |
+
+---
+
+## 6. Manual Checks & Infrastructure Blockers
+
+- **Manual checks recommended**:
+  - Physical macOS keyboard check for `Meta+k` (automated suite tested `Control+k` in Linux Chromium).
+- **Infrastructure blockers (relevant to Batch 3+)**:
+  - No `DATABASE_URL` / initialized persistent database tables for workspaces, memberships, conversations, runs, or events (`prisma/schema.prisma` needs Batch 3 workspace schema + server persistence).
+  - No live model provider API credentials configured server-side (`MODEL_PROVIDER_API_KEY` / server-side gateway routes pending Batch 4).
+  - No isolated workspace runtime gateway or PTY host configured (`RUNTIME_GATEWAY_URL` pending Batch 6+).
+
+---
+
+## 7. Next Proposed Batch
+**Batch 3 — Shared contracts, authorization, and persistence** (Blueprint Sections 6, 12, 13, 19, 20):
+- Shared `src/lib/workspace/contracts.ts` & runtime input validation schemas (`zod`).
+- Server-side workspace/membership/conversation/run/event persistence in Prisma.
+- Authenticated `/api/workspaces/*` endpoints and server-resolved `/capabilities` contract.

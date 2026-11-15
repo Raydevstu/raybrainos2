@@ -1,10 +1,22 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const isCI = !!process.env.CI;
+const useProductionServer =
+  isCI ||
+  process.env.PLAYWRIGHT_USE_PRODUCTION === "1" ||
+  process.env.PLAYWRIGHT_USE_PRODUCTION === "true";
+
+const port = Number(process.env.PLAYWRIGHT_PORT || 3000);
+const host =
+  process.env.PLAYWRIGHT_HOST ||
+  (useProductionServer ? "127.0.0.1" : "localhost");
+const baseURL = process.env.PLAYWRIGHT_TEST_BASE_URL || `http://${host}:${port}`;
+
 export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: false,
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  forbidOnly: isCI,
+  retries: isCI ? 2 : 0,
   workers: 1,
   reporter: [
     ["list"],
@@ -12,7 +24,7 @@ export default defineConfig({
     ["json", { outputFile: "playwright-report/test-results.json" }],
   ],
   use: {
-    baseURL: process.env.PLAYWRIGHT_TEST_BASE_URL || "http://localhost:3000",
+    baseURL,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
@@ -27,9 +39,16 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "npm run dev",
-    url: "http://localhost:3000",
-    reuseExistingServer: true,
+    command: useProductionServer ? "bun run start" : "bun run dev",
+    url: baseURL,
+    reuseExistingServer: !isCI && !useProductionServer,
     timeout: 120 * 1000,
+    env: useProductionServer
+      ? {
+          NODE_ENV: "production",
+          PORT: String(port),
+          HOSTNAME: host,
+        }
+      : undefined,
   },
 });

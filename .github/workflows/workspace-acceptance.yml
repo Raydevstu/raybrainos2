@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   acceptance:
-    name: Playwright Acceptance Suite
+    name: Playwright Acceptance Suite (Production Build)
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -35,21 +35,38 @@ jobs:
       - name: Install Chromium with system dependencies
         run: bun x playwright install --with-deps chromium
 
-      - name: Build Next.js application
+      - name: Run ESLint
+        run: bun run lint
+
+      - name: Build Next.js production application
         run: NODE_ENV=production bun run build
 
-      - name: Run Playwright acceptance suite
+      - name: Run Playwright acceptance suite against built server
         run: bun run test:e2e
         env:
           NODE_ENV: production
           CI: "true"
+          PLAYWRIGHT_HOST: 127.0.0.1
+          PLAYWRIGHT_PORT: "3000"
 
-      - name: Upload Playwright report and artifacts
+      - name: Record tested commit SHA and run metadata
+        if: always()
+        run: |
+          {
+            echo "### Workspace Acceptance Run Evidence"
+            echo "- **Checked-out SHA**: \`${GITHUB_SHA}\`"
+            echo "- **Ref**: \`${GITHUB_REF}\`"
+            echo "- **Target Server**: Production build (\`bun run start\` -> \`.next/standalone/server.js\` on \`http://127.0.0.1:3000\`)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Playwright report, screenshots, traces, and server log
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: workspace-acceptance-evidence-${{ github.sha }}
           path: |
             playwright-report/
             test-results/
+            docs/screenshots/
+            server.log
           retention-days: 14

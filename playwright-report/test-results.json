@@ -55,7 +55,7 @@
         "testMatch": "**/*.@(spec|test).?(c|m)[jt]s?(x)",
         "timeout": 30000,
         "use": {
-          "baseURL": "http://localhost:3000",
+          "baseURL": "http://127.0.0.1:3100",
           "trace": "retain-on-failure",
           "screenshot": "only-on-failure",
           "video": "retain-on-failure",
@@ -109,10 +109,15 @@
     "version": "1.65.1",
     "workers": 1,
     "webServer": {
-      "command": "npm run dev",
-      "url": "http://localhost:3000",
-      "reuseExistingServer": true,
-      "timeout": 120000
+      "command": "bun run start",
+      "url": "http://127.0.0.1:3100",
+      "reuseExistingServer": false,
+      "timeout": 120000,
+      "env": {
+        "NODE_ENV": "production",
+        "PORT": "3100",
+        "HOSTNAME": "127.0.0.1"
+      }
     }
   },
   "suites": [
@@ -126,7 +131,7 @@
         {
           "title": "RayBrainOS2 Workspace Acceptance Suite",
           "file": "workspace-acceptance.spec.ts",
-          "line": 20,
+          "line": 67,
           "column": 6,
           "specs": [
             {
@@ -145,12 +150,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 1701,
+                      "duration": 1070,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-11-15T04:48:19.133Z",
+                      "startTime": "2026-11-15T05:10:44.386Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -160,11 +165,11 @@
               ],
               "id": "9ef49acf0c54700ccb27-a11e471203d20d143bf0",
               "file": "workspace-acceptance.spec.ts",
-              "line": 29,
+              "line": 92,
               "column": 3
             },
             {
-              "title": "B. Compact drawer appearance: computed theme tokens and focus styles",
+              "title": "B. Compact drawer appearance: computed theme tokens and keyboard focus styles",
               "ok": true,
               "tags": [],
               "tests": [
@@ -179,12 +184,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 1970,
+                      "duration": 1358,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-11-15T04:48:21.035Z",
+                      "startTime": "2026-11-15T05:10:45.651Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -192,13 +197,13 @@
                   "status": "expected"
                 }
               ],
-              "id": "9ef49acf0c54700ccb27-7de68cf11bf769401221",
+              "id": "9ef49acf0c54700ccb27-3756d170cb6ecf764132",
               "file": "workspace-acceptance.spec.ts",
-              "line": 56,
+              "line": 133,
               "column": 3
             },
             {
-              "title": "C. Focus restoration: Escape, close button, backdrop, breakpoint, and fallback",
+              "title": "C. Focus restoration: Escape, close button, backdrop, breakpoint, disabled & removed opener fallbacks",
               "ok": true,
               "tags": [],
               "tests": [
@@ -213,12 +218,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 2515,
+                      "duration": 2285,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-11-15T04:48:23.030Z",
+                      "startTime": "2026-11-15T05:10:47.039Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -226,13 +231,13 @@
                   "status": "expected"
                 }
               ],
-              "id": "9ef49acf0c54700ccb27-4c8089508e697e662391",
+              "id": "9ef49acf0c54700ccb27-3a63fb43de474b7547d9",
               "file": "workspace-acceptance.spec.ts",
-              "line": 128,
+              "line": 253,
               "column": 3
             },
             {
-              "title": "D. Sidebar tabs: WAI-ARIA semantics, roving tabIndex, and arrow/Home/End navigation",
+              "title": "D. Sidebar tabs: WAI-ARIA semantics, one tab stop per tablist, and arrow/Home/End navigation",
               "ok": true,
               "tags": [],
               "tests": [
@@ -247,12 +252,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 2213,
+                      "duration": 1743,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-11-15T04:48:25.569Z",
+                      "startTime": "2026-11-15T05:10:49.356Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -260,9 +265,9 @@
                   "status": "expected"
                 }
               ],
-              "id": "9ef49acf0c54700ccb27-c8fb5a035bc4e3bcef6d",
+              "id": "9ef49acf0c54700ccb27-b1388b711c7916027263",
               "file": "workspace-acceptance.spec.ts",
-              "line": 203,
+              "line": 373,
               "column": 3
             },
             {
@@ -281,12 +286,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 2417,
+                      "duration": 1817,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-11-15T04:48:27.798Z",
+                      "startTime": "2026-11-15T05:10:51.121Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -296,11 +301,11 @@
               ],
               "id": "9ef49acf0c54700ccb27-f6b551accfb23f656527",
               "file": "workspace-acceptance.spec.ts",
-              "line": 275,
+              "line": 484,
               "column": 3
             },
             {
-              "title": "F. Terminal: opens below center only and does not resize sidebars vertically",
+              "title": "F. Terminal: opens below center only and leaves both sidebar heights unchanged",
               "ok": true,
               "tags": [],
               "tests": [
@@ -315,12 +320,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 1798,
+                      "duration": 1294,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-11-15T04:48:30.234Z",
+                      "startTime": "2026-11-15T05:10:52.961Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -328,13 +333,13 @@
                   "status": "expected"
                 }
               ],
-              "id": "9ef49acf0c54700ccb27-40bb97b75193b21d4f5d",
+              "id": "9ef49acf0c54700ccb27-8c2d70475537b48a053c",
               "file": "workspace-acceptance.spec.ts",
-              "line": 339,
+              "line": 565,
               "column": 3
             },
             {
-              "title": "G. Layout: pointer resize, keyboard resize, reload persistence, focus mode, and recovery",
+              "title": "G. Layout: pointer-drag geometry, keyboard resize, focus mode with all panes, reload persistence & recovery",
               "ok": true,
               "tags": [],
               "tests": [
@@ -349,12 +354,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 2527,
+                      "duration": 3397,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-11-15T04:48:32.053Z",
+                      "startTime": "2026-11-15T05:10:54.280Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -362,9 +367,9 @@
                   "status": "expected"
                 }
               ],
-              "id": "9ef49acf0c54700ccb27-fd0c2bbb15c46cf5054f",
+              "id": "9ef49acf0c54700ccb27-78566be9842619303ec6",
               "file": "workspace-acceptance.spec.ts",
-              "line": 374,
+              "line": 635,
               "column": 3
             },
             {
@@ -383,12 +388,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 1565,
+                      "duration": 1038,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-11-15T04:48:34.597Z",
+                      "startTime": "2026-11-15T05:10:57.696Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -398,11 +403,11 @@
               ],
               "id": "9ef49acf0c54700ccb27-e32af7aa65f958643a9b",
               "file": "workspace-acceptance.spec.ts",
-              "line": 432,
+              "line": 825,
               "column": 3
             },
             {
-              "title": "Viewport matrix and visual evidence across required breakpoints",
+              "title": "Viewport matrix and no-horizontal-overflow across all required breakpoints",
               "ok": true,
               "tags": [],
               "tests": [
@@ -417,12 +422,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 1905,
+                      "duration": 1611,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-11-15T04:48:36.183Z",
+                      "startTime": "2026-11-15T05:10:58.758Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -430,9 +435,162 @@
                   "status": "expected"
                 }
               ],
-              "id": "9ef49acf0c54700ccb27-dbe151327b4982bf3862",
+              "id": "9ef49acf0c54700ccb27-2297f15a434ce81e66f1",
               "file": "workspace-acceptance.spec.ts",
-              "line": 503,
+              "line": 903,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "workspace-navigation.spec.ts",
+      "file": "workspace-navigation.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Batch 2: Navigation & Secondary Pages",
+          "file": "workspace-navigation.spec.ts",
+          "line": 35,
+          "column": 6,
+          "specs": [
+            {
+              "title": "1. Command palette (keyboard + button) runs workspace actions and navigates cleanly",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium-desktop",
+                  "projectName": "chromium-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2091,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-15T05:11:00.404Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "62ee0100868f01d700c4-668d6a21c2154db19bab",
+              "file": "workspace-navigation.spec.ts",
+              "line": 59,
+              "column": 3
+            },
+            {
+              "title": "2. Compact app menu navigates cleanly and / stays calm without side rails",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium-desktop",
+                  "projectName": "chromium-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1221,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-15T05:11:02.521Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "62ee0100868f01d700c4-4d4a99c7fe657577b208",
+              "file": "workspace-navigation.spec.ts",
+              "line": 110,
+              "column": 3
+            },
+            {
+              "title": "3. Layout and unsent composer draft persist across secondary route navigation",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium-desktop",
+                  "projectName": "chromium-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1501,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-15T05:11:03.769Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "62ee0100868f01d700c4-d9252a6ab2b0622e79d5",
+              "file": "workspace-navigation.spec.ts",
+              "line": 149,
+              "column": 3
+            },
+            {
+              "title": "4. All secondary routes render cleanly with honest status, zero errors, and no mobile overflow",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium-desktop",
+                  "projectName": "chromium-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3612,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-15T05:11:05.289Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "62ee0100868f01d700c4-e5247d6e7ea6537568c2",
+              "file": "workspace-navigation.spec.ts",
+              "line": 224,
               "column": 3
             }
           ]
@@ -442,9 +600,9 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-11-15T04:48:17.766Z",
-    "duration": 20405.455,
-    "expected": 9,
+    "startTime": "2026-11-15T05:10:42.557Z",
+    "duration": 26429.944,
+    "expected": 13,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0

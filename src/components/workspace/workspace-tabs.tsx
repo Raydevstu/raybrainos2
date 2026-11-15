@@ -1,10 +1,38 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowUp, MessageSquare } from "lucide-react";
+import { DRAFT_STORAGE_KEY } from "@/lib/workspace/layout-state";
 
 export function WorkspaceTabs() {
   const [draft, setDraft] = useState("");
+  const hydrated = useRef(false);
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (saved) {
+        setDraft(saved);
+      }
+    } catch {
+      // Storage may be unavailable; in-memory draft continues to work.
+    } finally {
+      hydrated.current = true;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated.current) return;
+    try {
+      if (draft) {
+        window.localStorage.setItem(DRAFT_STORAGE_KEY, draft);
+      } else {
+        window.localStorage.removeItem(DRAFT_STORAGE_KEY);
+      }
+    } catch {
+      // Storage write failure must never interrupt typing.
+    }
+  }, [draft]);
 
   return (
     <div className="rb-work-area rb-workspace-tabs">

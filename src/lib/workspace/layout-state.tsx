@@ -41,6 +41,7 @@ type LayoutAction =
   | { type: "hydrate"; value: LayoutState };
 
 export const LAYOUT_STORAGE_KEY = "raybrain.workspace.layout.v1";
+export const DRAFT_STORAGE_KEY = "raybrain.workspace.draft.v1";
 
 export const LEFT_MIN_WIDTH = 200;
 export const LEFT_MAX_WIDTH = 380;
@@ -292,3 +293,8 @@ export function useWorkspaceLayout(): LayoutContextValue {
 
   return context;
 }
+
+export function useOptionalWorkspaceLayout(): LayoutContextValue | null {
+  return useContext(LayoutContext);
+}
+
