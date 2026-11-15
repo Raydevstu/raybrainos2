@@ -30,11 +30,12 @@ export function WorkspaceHeader() {
         <button
           type="button"
           className="rb-button rb-icon-button"
+          data-rb-drawer-fallback="left"
           aria-label="Toggle project navigation"
           aria-expanded={leftVisible}
           aria-pressed={leftVisible}
           title={leftVisible ? "Hide navigation" : "Show navigation"}
-          onClick={toggleLeft}
+          onClick={(event) => toggleLeft(event.currentTarget)}
         >
           <PanelLeft size={16} aria-hidden="true" />
         </button>
@@ -68,7 +69,7 @@ export function WorkspaceHeader() {
           aria-label="Open changes"
           aria-pressed={rightVisible && state.rightView === "changes"}
           title="Open changes"
-          onClick={() => openRightTool("changes")}
+          onClick={(event) => openRightTool("changes", event.currentTarget)}
         >
           <GitCompare size={15} aria-hidden="true" />
           <span className="rb-button-label">Changes</span>
@@ -77,11 +78,12 @@ export function WorkspaceHeader() {
         <button
           type="button"
           className="rb-button rb-icon-button"
+          data-rb-drawer-fallback="right"
           aria-label="Toggle workspace tools"
           aria-expanded={rightVisible}
           aria-pressed={rightVisible}
           title={rightVisible ? "Hide tools" : "Open tools"}
-          onClick={toggleRight}
+          onClick={(event) => toggleRight(event.currentTarget)}
         >
           <PanelRight size={16} aria-hidden="true" />
         </button>

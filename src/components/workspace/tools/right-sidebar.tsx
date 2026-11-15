@@ -1,5 +1,6 @@
 "use client";
 
+import * as TabsPrimitive from "@radix-ui/react-tabs";
 import {
   Bug,
   Eye,
@@ -61,8 +62,6 @@ export function RightSidebar() {
     }
   };
 
-  const active = TOOL_META[state.rightView];
-
   return (
     <aside
       id="rb-right-pane"
@@ -70,51 +69,54 @@ export function RightSidebar() {
       role="region"
       aria-label="Workspace tools"
     >
-      <div className="rb-pane-head">
-        <div
-          className="rb-tools-tabs rb-segmented"
-          role="tablist"
-          aria-label="Workspace tool views"
-        >
-          {RIGHT_TABS.map((view) => (
-            <button
-              key={view}
-              type="button"
-              role="tab"
-              id={`rb-right-tab-${view}`}
-              aria-selected={state.rightView === view}
-              aria-controls={`rb-right-panel-${view}`}
-              className="rb-seg-tab"
-              onClick={() => dispatch({ type: "right-view", view })}
-            >
-              {TOOL_META[view].label}
-            </button>
-          ))}
-        </div>
-
-        <button
-          type="button"
-          className="rb-button rb-icon-button"
-          aria-label="Hide workspace tools"
-          title="Hide tools"
-          onClick={handleClose}
-        >
-          <X size={15} aria-hidden="true" />
-        </button>
-      </div>
-
-      <div
-        id={`rb-right-panel-${state.rightView}`}
-        role="tabpanel"
-        aria-labelledby={`rb-right-tab-${state.rightView}`}
-        className="rb-pane-body"
+      <TabsPrimitive.Root
+        value={state.rightView}
+        onValueChange={(value) =>
+          dispatch({ type: "set-right-view", view: value as RightView })
+        }
+        className="rb-tabs-root"
       >
-        <div className="rb-empty-state">
-          <ToolIcon view={state.rightView} />
-          <p className="rb-empty-title">{active.title}</p>
-          <p className="rb-empty-copy">{active.copy}</p>
+        <div className="rb-pane-head">
+          <TabsPrimitive.List
+            className="rb-tools-tabs rb-segmented"
+            aria-label="Workspace tool views"
+          >
+            {RIGHT_TABS.map((view) => (
+              <TabsPrimitive.Trigger
+                key={view}
+                value={view}
+                className="rb-seg-tab"
+              >
+                {TOOL_META[view].label}
+              </TabsPrimitive.Trigger>
+            ))}
+          </TabsPrimitive.List>
+
+          <button
+            type="button"
+            className="rb-button rb-icon-button"
+            aria-label="Hide workspace tools"
+            title="Hide tools"
+            onClick={handleClose}
+          >
+            <X size={15} aria-hidden="true" />
+          </button>
         </div>
-      </div>
+
+        {RIGHT_TABS.map((view) => (
+          <TabsPrimitive.Content
+            key={view}
+            value={view}
+            className="rb-pane-body"
+          >
+            <div className="rb-empty-state">
+              <ToolIcon view={view} />
+              <p className="rb-empty-title">{TOOL_META[view].title}</p>
+              <p className="rb-empty-copy">{TOOL_META[view].copy}</p>
+            </div>
+          </TabsPrimitive.Content>
+        ))}
+      </TabsPrimitive.Root>
 
       <div className="rb-tool-foot">
         <button

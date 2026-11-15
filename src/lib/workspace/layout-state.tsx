@@ -33,8 +33,9 @@ export interface LayoutState {
 type LayoutAction =
   | { type: "toggle"; panel: "left" | "right" | "terminal" }
   | { type: "set-open"; panel: "left" | "right" | "terminal"; value: boolean }
-  | { type: "left-view"; view: LeftView }
-  | { type: "right-view"; view: RightView }
+  | { type: "set-left-view"; view: LeftView }
+  | { type: "set-right-view"; view: RightView }
+  | { type: "open-desktop-right-view"; view: RightView }
   | { type: "resize"; panel: "left" | "right" | "terminal"; value: number }
   | { type: "focus"; value: boolean }
   | { type: "hydrate"; value: LayoutState };
@@ -166,15 +167,19 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
       return { ...state, terminalOpen: action.value, focusMode: false };
     }
 
-    case "left-view":
+    case "set-left-view":
       return {
         ...state,
         leftView: action.view,
-        leftOpen: true,
-        focusMode: false,
       };
 
-    case "right-view":
+    case "set-right-view":
+      return {
+        ...state,
+        rightView: action.view,
+      };
+
+    case "open-desktop-right-view":
       return {
         ...state,
         rightView: action.view,

@@ -1,5 +1,6 @@
 "use client";
 
+import * as TabsPrimitive from "@radix-ui/react-tabs";
 import {
   FolderOpen,
   MessageSquare,
@@ -7,7 +8,10 @@ import {
   Plus,
   Search,
 } from "lucide-react";
-import { useWorkspaceLayout } from "@/lib/workspace/layout-state";
+import {
+  useWorkspaceLayout,
+  type LeftView,
+} from "@/lib/workspace/layout-state";
 import { useWorkspaceViewport } from "../workspace-shell";
 
 export function LeftSidebar() {
@@ -29,54 +33,38 @@ export function LeftSidebar() {
       role="region"
       aria-label="Project navigation"
     >
-      <div className="rb-pane-head">
-        <div
-          className="rb-segmented"
-          role="tablist"
-          aria-label="Navigation view"
-        >
+      <TabsPrimitive.Root
+        value={state.leftView}
+        onValueChange={(value) =>
+          dispatch({ type: "set-left-view", view: value as LeftView })
+        }
+        className="rb-tabs-root"
+      >
+        <div className="rb-pane-head">
+          <TabsPrimitive.List
+            className="rb-segmented"
+            aria-label="Navigation view"
+          >
+            <TabsPrimitive.Trigger value="files" className="rb-seg-tab">
+              Files
+            </TabsPrimitive.Trigger>
+            <TabsPrimitive.Trigger value="chats" className="rb-seg-tab">
+              Chats
+            </TabsPrimitive.Trigger>
+          </TabsPrimitive.List>
+
           <button
             type="button"
-            role="tab"
-            id="rb-left-tab-files"
-            aria-selected={state.leftView === "files"}
-            aria-controls="rb-left-panel-files"
-            className="rb-seg-tab"
-            onClick={() => dispatch({ type: "left-view", view: "files" })}
+            className="rb-button rb-icon-button"
+            aria-label="Hide project navigation"
+            title="Hide navigation"
+            onClick={handleClose}
           >
-            Files
-          </button>
-          <button
-            type="button"
-            role="tab"
-            id="rb-left-tab-chats"
-            aria-selected={state.leftView === "chats"}
-            aria-controls="rb-left-panel-chats"
-            className="rb-seg-tab"
-            onClick={() => dispatch({ type: "left-view", view: "chats" })}
-          >
-            Chats
+            <PanelLeftClose size={15} aria-hidden="true" />
           </button>
         </div>
 
-        <button
-          type="button"
-          className="rb-button rb-icon-button"
-          aria-label="Hide project navigation"
-          title="Hide navigation"
-          onClick={handleClose}
-        >
-          <PanelLeftClose size={15} aria-hidden="true" />
-        </button>
-      </div>
-
-      {state.leftView === "files" ? (
-        <div
-          id="rb-left-panel-files"
-          role="tabpanel"
-          aria-labelledby="rb-left-tab-files"
-          className="rb-pane-body"
-        >
+        <TabsPrimitive.Content value="files" className="rb-pane-body">
           <div className="rb-search-wrap">
             <Search size={13} aria-hidden="true" />
             <input
@@ -95,14 +83,9 @@ export function LeftSidebar() {
               Connect a workspace runtime to browse and edit project files.
             </p>
           </div>
-        </div>
-      ) : (
-        <div
-          id="rb-left-panel-chats"
-          role="tabpanel"
-          aria-labelledby="rb-left-tab-chats"
-          className="rb-pane-body"
-        >
+        </TabsPrimitive.Content>
+
+        <TabsPrimitive.Content value="chats" className="rb-pane-body">
           <button
             type="button"
             className="rb-button"
@@ -125,8 +108,8 @@ export function LeftSidebar() {
               is connected.
             </p>
           </div>
-        </div>
-      )}
+        </TabsPrimitive.Content>
+      </TabsPrimitive.Root>
     </aside>
   );
 }

@@ -116,9 +116,9 @@ interface WorkspaceViewportContextValue {
   leftVisible: boolean;
   rightVisible: boolean;
   terminalVisible: boolean;
-  toggleLeft: () => void;
-  toggleRight: () => void;
-  openRightTool: (view: RightView) => void;
+  toggleLeft: (opener?: HTMLElement | null) => void;
+  toggleRight: (opener?: HTMLElement | null) => void;
+  openRightTool: (view: RightView, opener?: HTMLElement | null) => void;
   toggleTerminal: () => void;
   toggleFocusMode: () => void;
   closeCompactDrawer: () => void;
@@ -130,9 +130,7 @@ const WorkspaceViewportContext =
 export function useWorkspaceViewport(): WorkspaceViewportContextValue {
   const context = useContext(WorkspaceViewportContext);
   if (!context) {
-    throw new Error(
-      "useWorkspaceViewport requires WorkspaceShell",
-    );
+    throw new Error("useWorkspaceViewport requires WorkspaceShell");
   }
   return context;
 }
@@ -156,9 +154,11 @@ export function WorkspaceShell({
   right,
 }: WorkspaceShellProps) {
   const { state, dispatch, ready } = useWorkspaceLayout();
+  const rootRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const [bodySize, setBodySize] = useState({ width: 1440, height: 956 });
   const [compactDrawer, setCompactDrawer] = useState<CompactDrawer>(null);
+  const [drawerOpener, setDrawerOpener] = useState<HTMLElement | null>(null);
 
   useIsomorphicLayoutEffect(() => {
     const element = bodyRef.current;
@@ -197,8 +197,8 @@ export function WorkspaceShell({
 
   const isDesktop = bodySize.width >= 1200;
 
-  // Ensure leaving compact mode or entering focus mode closes any modal drawer
-  // so no invisible overlay or stale focus trap ever remains.
+  // Clear temporary compact drawer when crossing to desktop or entering focus mode
+  // without touching remembered desktop leftOpen / rightOpen state.
   useEffect(() => {
     if (isDesktop && compactDrawer !== null) {
       setCompactDrawer(null);
@@ -240,41 +240,92 @@ export function WorkspaceShell({
     [bodySize.height, state.terminalHeight],
   );
 
-  const toggleLeft = useCallback(() => {
-    if (isDesktop) {
-      dispatch({ type: "toggle", panel: "left" });
-    } else {
-      dispatch({ type: "focus", value: false });
-      setCompactDrawer((prev) => (prev === "left" ? null : "left"));
+  const captureOpener = (opener?: HTMLElement | null) => {
+    if (opener instanceof HTMLElement) {
+      setDrawerOpener(opener);
+    } else if (document.activeElement instanceof HTMLElement) {
+      setDrawerOpener(document.activeElement);
     }
-  }, [isDesktop, dispatch]);
+  };
 
-  const toggleRight = useCallback(() => {
-    if (isDesktop) {
-      dispatch({ type: "toggle", panel: "right" });
-    } else {
-      dispatch({ type: "focus", value: false });
-      setCompactDrawer((prev) => (prev === "right" ? null : "right"));
-    }
-  }, [isDesktop, dispatch]);
+  const getFallbackFocusTarget = useCallback(
+    (side: "left" | "right"): HTMLElement | null => {
+      const root = rootRef.current;
+      if (!root) return null;
+      return (
+        root.querySelector<HTMLElement>(
+          `[data-rb-drawer-fallback="${side}"]:not(:disabled)`,
+        ) ??
+        root.querySelector<HTMLElement>(
+          ".rb-header button:not(:disabled), .rb-center-tab, .rb-textarea",
+        )
+      );
+    },
+    [],
+  );
+
+  const toggleLeft = useCallback(
+    (opener?: HTMLElement | null) => {
+      if (isDesktop) {
+        dispatch({ type: "toggle", panel: "left" });
+        return;
+      }
+
+      if (compactDrawer === "left") {
+        setCompactDrawer(null);
+      } else {
+        captureOpener(opener);
+        setCompactDrawer("left");
+      }
+    },
+    [isDesktop, compactDrawer, dispatch],
+  );
+
+  const toggleRight = useCallback(
+    (opener?: HTMLElement | null) => {
+      if (isDesktop) {
+        dispatch({ type: "toggle", panel: "right" });
+        return;
+      }
+
+      if (compactDrawer === "right") {
+        setCompactDrawer(null);
+      } else {
+        captureOpener(opener);
+        setCompactDrawer("right");
+      }
+    },
+    [isDesktop, compactDrawer, dispatch],
+  );
 
   const openRightTool = useCallback(
-    (view: RightView) => {
+    (view: RightView, opener?: HTMLElement | null) => {
       if (isDesktop) {
         if (!state.focusMode && state.rightOpen && state.rightView === view) {
           dispatch({ type: "set-open", panel: "right", value: false });
         } else {
-          dispatch({ type: "right-view", view });
+          dispatch({ type: "open-desktop-right-view", view });
         }
+        return;
+      }
+
+      // Compact mode: select tool view and open drawer without mutating desktop rightOpen.
+      dispatch({ type: "set-right-view", view });
+      if (compactDrawer === "right" && state.rightView === view) {
+        setCompactDrawer(null);
       } else {
-        dispatch({ type: "focus", value: false });
-        dispatch({ type: "right-view", view });
-        setCompactDrawer((prev) =>
-          prev === "right" && state.rightView === view ? null : "right",
-        );
+        captureOpener(opener);
+        setCompactDrawer("right");
       }
     },
-    [isDesktop, state.focusMode, state.rightOpen, state.rightView, dispatch],
+    [
+      isDesktop,
+      compactDrawer,
+      state.focusMode,
+      state.rightOpen,
+      state.rightView,
+      dispatch,
+    ],
   );
 
   const toggleTerminal = useCallback(() => {
@@ -327,6 +378,7 @@ export function WorkspaceShell({
   return (
     <WorkspaceViewportContext.Provider value={viewportValue}>
       <div
+        ref={rootRef}
         className="rb-workspace"
         data-testid="workspace-ready"
         data-ready={ready ? "true" : "false"}
@@ -411,33 +463,31 @@ export function WorkspaceShell({
           )}
         </div>
 
-        {!isDesktop && (
-          <>
-            <SidebarDrawer
-              open={compactDrawer === "left"}
-              side="left"
-              title="Project navigation"
-              description="Browse workspace files and conversations."
-              onOpenChange={(open) =>
-                setCompactDrawer(open ? "left" : null)
-              }
-            >
-              {left}
-            </SidebarDrawer>
+        {/* Keep Drawer roots mounted across breakpoint transitions so closing
+            via resize runs Radix Dialog close/focus restoration cleanly. */}
+        <SidebarDrawer
+          open={!isDesktop && compactDrawer === "left"}
+          side="left"
+          title="Project navigation"
+          description="Browse workspace files and conversations."
+          openerElement={drawerOpener}
+          getFallbackElement={() => getFallbackFocusTarget("left")}
+          onOpenChange={(open) => setCompactDrawer(open ? "left" : null)}
+        >
+          {left}
+        </SidebarDrawer>
 
-            <SidebarDrawer
-              open={compactDrawer === "right"}
-              side="right"
-              title="Workspace tools"
-              description="Inspect changes, preview, browser, and debug signals."
-              onOpenChange={(open) =>
-                setCompactDrawer(open ? "right" : null)
-              }
-            >
-              {right}
-            </SidebarDrawer>
-          </>
-        )}
+        <SidebarDrawer
+          open={!isDesktop && compactDrawer === "right"}
+          side="right"
+          title="Workspace tools"
+          description="Inspect changes, preview, browser, and debug signals."
+          openerElement={drawerOpener}
+          getFallbackElement={() => getFallbackFocusTarget("right")}
+          onOpenChange={(open) => setCompactDrawer(open ? "right" : null)}
+        >
+          {right}
+        </SidebarDrawer>
       </div>
     </WorkspaceViewportContext.Provider>
   );

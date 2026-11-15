@@ -1,108 +1,111 @@
 # Implementation Status — RayBrainOS2 Chat-First Workspace
 
 ## Current Batch
-**Batch 1 — Front-Page Shell and Visual Layout** (Completed — awaiting review before Batch 2)
+**Batch 1.1 — Targeted Review Fixes (Within Batch 1; Batch 1 NOT yet accepted)**  
+Stopped for review before Batch 2.
 
 ---
 
-## Completed Work (Batch 1)
-
-### 1. Changed & Added Files
-- **Added `src/components/workspace/workspace.css`**: Scoped warm-charcoal design tokens (`#202020`, `#191919`, `#282828`, `#363636`, `#eeeeec`, `#a7a7a2`, `#d4c6b3`), `.rb-*` class selectors (isolated from unlayered `*` and element rules in `src/components/cortex/cortex.css`), responsive drawer classes, and `prefers-reduced-motion` support.
-- **Added `src/lib/workspace/layout-state.tsx`**: `WorkspaceLayoutProvider` and `useWorkspaceLayout` managing `leftOpen` (default `true`), `rightOpen` (default `false`), `terminalOpen` (default `false`), `leftView` (`"files"` | `"chats"`), `rightView` (`"changes"` | `"preview"` | `"browser"` | `"debug"`), `leftWidth` (`248px`, `200–380px`), `rightWidth` (`380px`, `320–720px`), `terminalHeight` (`220px`, `140–600px`), and non-persisted `focusMode` (`false`). Includes `decodeLayout()` validation/clamping, safe `try/catch` storage handling for `raybrain.workspace.layout.v1`, and post-hydration persistence gating (`skipFirstSave` prevents writing defaults before `localStorage` is read).
-- **Added `src/components/workspace/resize-handle.tsx`**: Accessible `ResizeHandle` supporting left-button pointer drag with `setPointerCapture` + `pointercancel`/`lostpointercapture` cleanup, and keyboard resizing (`Arrow*`, `Shift` 40px increments, `Home`, `End`) with `role="separator"`, `aria-label`, `aria-controls`, `aria-orientation`, `aria-valuemin`, `aria-valuemax`, and `aria-valuenow`.
-- **Added `src/components/workspace/sidebar-drawer.tsx`**: Compact/mobile drawer wrapper built on the existing installed `@radix-ui/react-dialog` primitive (`^1.1.14` declared / `1.3.1` installed), supplying accessible screen-reader `Title` + `Description`, modal focus containment, `Escape` closing, and Radix native focus restoration.
-- **Added `src/components/workspace/workspace-shell.tsx`**: `WorkspaceShell` using `ResizeObserver` (`useLayoutEffect`) to switch between CSS Grid desktop mode (`>= 1200px`) and temporary single-drawer compact mode (`< 1200px`). Implements `calculateWorkspaceColumns()` (preserving `>= 480px` center width without mutating stored preferred widths) and `calculateTerminalLayout()` (constraining terminal height against available center height while reserving usable center work area above it). Keeps compact drawer state (`compactDrawer`) separate from desktop open state and auto-clears drawers on desktop resize or focus-mode entry.
-- **Added `src/components/workspace/workspace-header.tsx`**: Compact `44px` header (`RayBrain / No workspace connected`) with working toggles for project navigation, terminal, changes, workspace tools, and focus mode.
-- **Added `src/components/workspace/navigation/left-sidebar.tsx`**: `Files` | `Chats` segmented switcher, collapse button, and honest disabled/empty states (no seeded tree or fake chats).
-- **Added `src/components/workspace/workspace-tabs.tsx`**: Permanent `Chat` tab (`aria-selected="true"`), editor-tab-ready strip, calm empty stage, and local draft `<textarea>` composer with explicitly disabled `Send` button until a model provider is connected.
-- **Added `src/components/workspace/terminal/terminal-drawer.tsx`**: Center-only bottom terminal region distinguishing `Hide terminal` from `Terminate` (disabled while no shell session exists) and showing an honest runtime-unavailable state.
-- **Added `src/components/workspace/tools/right-sidebar.tsx`**: Right sidebar with `Changes`, `Preview`, `Browser`, `Debug` tabs, close button, disabled `Expand into workspace (unavailable)` footer control, and honest unavailable states per tool.
-- **Added `src/components/workspace/workspace-root.tsx`**: Composes `WorkspaceLayoutProvider` + `WorkspaceShell` without importing `cortex.ts`, `cortex-os.tsx`, or any `simTick` timer.
-- **Modified `src/app/page.tsx`**: Replaced `<CortexOS />` with `<WorkspaceRoot />`. Legacy `src/components/cortex/*` and `src/lib/*` files remain preserved on disk for Batch 2 secondary pages.
-
-### 2. Implemented Interactions
-- Desktop (`>= 1200px`): Left sidebar starts open (`248px`), `Chat` selected, right sidebar closed, terminal closed.
-- Independent collapse/restore of left sidebar, right sidebar, and terminal drawer while preserving selected `leftView` / `rightView` and preferred sizes.
-- Focus mode hides both sidebars and terminal, then restores the exact previous arrangement on exit; toggling any panel exits focus mode and shows that panel.
-- Pointer and keyboard resizing (`ArrowLeft`/`Right`/`Up`/`Down`, `Shift+Arrow`, `Home`, `End`) clamped dynamically to container bounds without causing horizontal overflow.
-- Compact (`< 1200px`): Temporary left/right Radix drawers open one at a time, close on `Escape` or outside click, restore trigger focus, and auto-close when resizing back to `>= 1200px`.
-- Closed panels are unmounted in desktop mode so hidden panes cannot retain keyboard focus or duplicate drawer content.
+## Repository / VCS State Recorded Before Batch 1.1
+- **Current branch**: `N/A` (`git rev-parse --abbrev-ref HEAD` returned `fatal: not a git repository (or any of the parent directories): .git`)
+- **Current HEAD commit SHA**: `N/A` (`.git` is absent in `/app/applet`)
+- **Working-tree state**: No VCS diff available. All pre-existing Batch 0 repository files (`package.json`, `.env.example`, `eslint.config.mjs`, `next.config.ts`, `src/lib/db.ts`, `src/components/cortex/*`, `src/lib/api/*`, `src/lib/chat-engine.ts`, `DOCS/*`, etc.) and Batch 1 workspace files were preserved and unrelated files were left untouched.
 
 ---
 
-## Package Versions (Declared vs. Resolved Installed)
+## Batch 1.1 Fixes Implemented (Source-Level Changes)
 
-| Package | `package.json` Declared | `node_modules` Installed |
+### 1. Portaled Drawer Theme (`src/components/workspace/workspace.css`)
+- **Problem**: `--rb-*` custom properties were scoped only to `.rb-workspace`, whereas Radix `DialogPrimitive.Portal` mounts `.rb-drawer-overlay` and `.rb-drawer-content` directly under `document.body` outside `.rb-workspace`.
+- **Fix**: Moved all `--rb-*` theme tokens onto a single shared selector block (`.rb-workspace, .rb-drawer-overlay, .rb-drawer-content`), without modifying `:root` or legacy CortexOS CSS variables. Added scoped `:focus-visible` rules across both `.rb-workspace` and `.rb-drawer-content` (keeping `.rb-textarea:focus-visible` outline-free inside `.rb-composer`), and sized `.rb-drawer-content > .rb-sidebar` to fill the drawer height cleanly.
+
+### 2. Drawer Focus Restoration (`src/components/workspace/sidebar-drawer.tsx`, `workspace-shell.tsx`, `workspace-header.tsx`)
+- **Problem**: Drawers are opened by external header toggle buttons rather than `Dialog.Trigger`, so Radix could not reliably identify the opener across non-trigger opens and compact-to-desktop transitions.
+- **Fix**:
+  - Header controls (`Toggle project navigation`, `Open changes`, `Toggle workspace tools`) now pass `event.currentTarget` when opening a compact drawer (`captureOpener`) and carry `data-rb-drawer-fallback="left" | "right"`.
+  - Both `<SidebarDrawer>` roots remain mounted in `WorkspaceShell` (`open={!isDesktop && compactDrawer === "left" | "right"}`) so crossing from `< 1200px` back to `>= 1200px` runs Radix `Dialog` close/cleanup rather than abruptly unmounting mid-transition.
+  - `SidebarDrawer` handles `onCloseAutoFocus` by calling `event.preventDefault()`, verifying focus is still inside the closing drawer or lost to `document.body`/`documentElement` (so it does not steal focus if another surface already acquired focus), and restoring focus to `openerElement` if connected/enabled/visible, or falling back to `getFallbackFocusTarget()` (`[data-rb-drawer-fallback]` / visible header/center control).
+
+### 3. Accessible Sidebar Tabs (`src/components/workspace/navigation/left-sidebar.tsx`, `tools/right-sidebar.tsx`, `workspace.css`)
+- **Problem**: `Files`/`Chats` and `Changes`/`Preview`/`Browser`/`Debug` used `role="tablist"` / `role="tab"` without roving `tabIndex` or arrow/Home/End keyboard handling.
+- **Fix**: Replaced manual tab buttons in `LeftSidebar` and `RightSidebar` with the already-installed `@radix-ui/react-tabs` (`^1.1.12` declared / `1.2.1` installed; no new dependencies added), styled with `.rb-tabs-root`, `.rb-segmented`, `.rb-seg-tab`, and `.rb-pane-body`. Radix `Tabs` supplies WAI-ARIA `tablist`/`tab`/`tabpanel` attributes, one tab stop into each `tablist` via roving focus, Left/Right/Home/End navigation, consistent automatic activation, `aria-selected` / `data-state="active"`, and `.rb-seg-tab` `:focus-visible` outlines.
+
+### 4. Compact vs. Desktop State Isolation (`src/lib/workspace/layout-state.tsx`, `workspace-shell.tsx`, `left-sidebar.tsx`, `right-sidebar.tsx`)
+- **Problem**: Switching views previously dispatched `"left-view"` / `"right-view"` actions that mutated `leftOpen: true` / `rightOpen: true` and cleared `focusMode`, causing compact drawer view changes to force desktop sidebars open upon returning to `>= 1200px`.
+- **Fix**: Split `layoutReducer` view actions into pure `"set-left-view"` and `"set-right-view"` (updating only `leftView` / `rightView`) plus explicit desktop `"open-desktop-right-view"`. In compact mode (`< 1200px`), `LeftSidebar`, `RightSidebar`, and `openRightTool` only mutate `compactDrawer` and `set-left-view`/`set-right-view`, preserving remembered desktop `leftOpen` and `rightOpen` across compact sessions while still preserving the newly selected view across modes.
+
+---
+
+## Changed Files (Cumulative Batch 1 + Batch 1.1)
+- `src/app/page.tsx` (Batch 1 — mounts `<WorkspaceRoot />`)
+- `src/components/workspace/workspace-root.tsx` (Batch 1)
+- `src/components/workspace/workspace.css` (Batch 1 + Batch 1.1)
+- `src/lib/workspace/layout-state.tsx` (Batch 1 + Batch 1.1)
+- `src/components/workspace/resize-handle.tsx` (Batch 1)
+- `src/components/workspace/sidebar-drawer.tsx` (Batch 1 + Batch 1.1)
+- `src/components/workspace/workspace-shell.tsx` (Batch 1 + Batch 1.1)
+- `src/components/workspace/workspace-header.tsx` (Batch 1 + Batch 1.1)
+- `src/components/workspace/navigation/left-sidebar.tsx` (Batch 1 + Batch 1.1)
+- `src/components/workspace/workspace-tabs.tsx` (Batch 1)
+- `src/components/workspace/terminal/terminal-drawer.tsx` (Batch 1)
+- `src/components/workspace/tools/right-sidebar.tsx` (Batch 1 + Batch 1.1)
+- `docs/WORKSPACE_BLUEPRINT.md` (Batch 0 — links to canonical `DOCS/RAYBRAINOS2 — CHAT-FIRST WORKSPACE IMPLEMENTATION BLUEPRINT.md`)
+- `docs/IMPLEMENTATION_STATUS.md` (updated for Batch 1.1)
+
+### Installed Package Versions Verified (Declared vs. Resolved)
+- `next`: `^16.1.1` declared -> `16.4.6` installed
+- `react` / `react-dom`: `^19.0.0` declared -> `19.3.1` installed
+- `@radix-ui/react-dialog`: `^1.1.14` declared -> `1.3.1` installed
+- `@radix-ui/react-tabs`: `^1.1.12` declared -> `1.2.1` installed
+- `lucide-react`: `^0.525.0` declared -> `0.525.0` installed
+- `tailwindcss`: `^4` declared -> `4.3.5` installed
+- `typescript`: `^5` declared -> `5.9.3` installed
+
+---
+
+## Verification Evidence: Source/Build vs. Browser Checks
+
+### Executed CLI & Server Checks (Batch 1.1)
+
+| Command / Check | Outcome | Notes |
 |---|---|---|
-| `next` | `^16.1.1` | `16.4.6` |
-| `react` | `^19.0.0` | `19.3.1` |
-| `react-dom` | `^19.0.0` | `19.3.1` |
-| `@radix-ui/react-dialog` | `^1.1.14` | `1.3.1` |
-| `lucide-react` | `^0.525.0` | `0.525.0` |
-| `tailwindcss` | `^4` | `4.3.5` |
-| `typescript` | `^5` | `5.9.3` |
-| `prisma` / `@prisma/client` | `^6.11.1` | `6.19.3` |
-| `react-resizable-panels` | `^3.0.3` | `3.0.6` *(unused on `/`)* |
-
-*(Notice: `src/app/layout.tsx` still imports legacy `cortex.css` / `war-room.css` globally; `workspace.css` uses higher-specificity `.rb-*` class rules in `workspace-root.tsx` rather than rewriting legacy CSS files.)*
-
----
-
-## Commands Actually Executed and Results
-
-| Command | Outcome | Evidence / Notes |
-|---|---|---|
-| `npx tsc --noEmit` | **FAILED (Exit 2)** | **Only** existing baseline error: `examples/websocket/server.ts(2,24): error TS2307: Cannot find module 'socket.io' or its corresponding type declarations.` **Zero** TypeScript errors in `src/components/workspace/*`, `src/lib/workspace/*`, or `src/app/page.tsx`. |
-| `npm run lint` (`eslint .`) | **PASSED (Exit 0)** | Clean pass across all workspace files. |
+| `npx tsc --noEmit` | **FAILED (Exit 2)** | Matches Batch 0 baseline identically: **only** pre-existing `examples/websocket/server.ts(2,24): error TS2307: Cannot find module 'socket.io' or its corresponding type declarations.` Zero TypeScript errors in `src/components/workspace/*`, `src/lib/workspace/*`, or `src/app/page.tsx`. |
+| `npm run lint` (`eslint .`) | **PASSED (Exit 0)** | Clean exit across repository. |
 | `lint_applet` | **PASSED** | Clean pass (`$ eslint .`). |
-| `NODE_ENV=production npm run build` | **PASSED (Exit 0)** | Compiled Next.js 16.4.6 (Turbopack) and copied `.next/static` & `public` to `.next/standalone/`. *(Note: `next.config.ts` has `ignoreBuildErrors: true`; build success is not type-check verification.)* |
+| `NODE_ENV=production npm run build` | **PASSED (Exit 0)** | Compiled Next.js 16.4.6 (Turbopack) and copied `.next/static` & `public` to `.next/standalone/`. *(Note: `next.config.ts` sets `typescript: { ignoreBuildErrors: true }`; build success is not type-check success.)* |
 | `compile_applet` | **PASSED** | `Build succeeded - the applet is compiled`. |
-| `restart_dev_server` + `curl -sS http://127.0.0.1:3000/` | **PASSED (HTTP 200)** | Served `GET / 200`. Verified SSR HTML contains `data-testid="workspace-ready"`, `aria-label="Project navigation"`, `id="rb-tabpanel-chat"`, and omits closed `Workspace tools` and `Terminal` regions plus legacy `#rail`/`#dockwrap`/`#warstrip`. |
-| Headless Browser / Playwright Checks | **NOT RUN** | `playwright` and `chromium` / `google-chrome` binaries are not installed in this container (`which playwright chromium chromium-browser google-chrome` returned none; `require.resolve('playwright')` failed). Per project rules, no test framework was installed without approval. |
+| `restart_dev_server` + `curl -sS http://127.0.0.1:3000/` | **PASSED (HTTP 200)** | Verified SSR output contains `data-testid="workspace-ready"`, `aria-label="Project navigation"`, Radix `role="tablist"` (`Navigation view`), Radix `role="tab"` triggers (`Files`, `Chats`), and `id="rb-tabpanel-chat"`, while omitting closed `Workspace tools` and `Terminal` regions. |
+
+### Browser Verification Status
+- **Headless Browser / Playwright Checks**: **NOT RUN** — `playwright`, `chromium`, `chromium-browser`, and `google-chrome` are not installed in this container (`which` returned none; `require.resolve('playwright')` failed). No dependencies or browser tooling were installed.
+- **Note on claims**: All Batch 1.1 interaction behaviors (computed portaled drawer CSS, live focus restoration targets, Radix roving keyboard navigation in DOM, compact-to-desktop state retention, pointer/keyboard resize, and viewport breakpoints) are **verified by source inspection and TypeScript/SSR/build checks only**; live browser verification remains **NOT RUN**.
 
 ---
 
-## Existing Failures vs. Introduced Failures
-- **Existing Failures (Unchanged)**:
-  1. `examples/websocket/server.ts(2,24): TS2307 Cannot find module 'socket.io'`.
-  2. `next.config.ts` sets `typescript: { ignoreBuildErrors: true }`.
-  3. Shell default `NODE_ENV=development` causes unprefixed `npm run build` to fail on `/_global-error`; `NODE_ENV=production npm run build` passes.
-  4. `src/app/layout.tsx` metadata (`<title>`, `<meta name="keywords" ... "Solar CRM">`, `#07090f` `themeColor`) still reflects legacy CortexOS metadata until metadata/routes update in Batch 2.
-- **Introduced Failures**: None detected in `tsc`, `eslint`, production build, or SSR HTML check.
+## Manual Browser Checks Required Before Accepting Batch 1
+
+Verify in a desktop/mobile browser against `http://localhost:3000` (or Development App URL):
+
+1. **Portaled Drawer Computed Styles (`< 1200px`, e.g. `1024x768` and `390x844`)**:
+   - Open Left drawer and Right drawer; inspect `.rb-drawer-content` in `document.body` via DevTools Computed Styles: confirm background resolves to `#191919`, foreground `#eeeeec`, border `#363636`, focus-visible outline `#d4c6b3`, and no CortexOS blue `#4f8cff` ring or background leaks through.
+2. **Drawer Focus Restoration**:
+   - Open Left drawer via `Toggle project navigation` -> press `Escape` -> confirm focus returns to `Toggle project navigation`.
+   - Reopen Left drawer -> click `Hide project navigation` -> confirm focus returns to `Toggle project navigation`.
+   - Open Right drawer via `Open changes` -> dismiss via `Escape` and separately via backdrop click -> confirm focus returns to `Open changes`.
+   - Open Right drawer via `Toggle workspace tools` -> dismiss via drawer `Hide workspace tools` button -> confirm focus returns to `Toggle workspace tools`.
+   - Open a drawer at `1024px`, resize window to `1280px` while focus is inside drawer -> confirm drawer closes cleanly with no leftover overlay and focus returns to the opener without dropping to `<body>`.
+   - Optional DOM test: remove/disable the opener button via DevTools while drawer is open, press `Escape`, and verify focus lands on fallback workspace control rather than `<body>`.
+3. **Accessible Sidebar Tabs (`Files`/`Chats` and `Changes`/`Preview`/`Browser`/`Debug`)**:
+   - Tab into `Navigation view` tablist: verify only one tab stop enters the list; press `ArrowRight`/`ArrowLeft`/`Home`/`End` and verify selection switches, `tabindex="0"` follows active tab, `aria-selected` updates, linked panel content switches, and focus outline `#d4c6b3` is visible.
+   - Repeat for `Workspace tool views` tablist (`Changes`, `Preview`, `Browser`, `Debug`).
+4. **Compact vs. Desktop State Isolation**:
+   - Start at `1440x1000`, close Right sidebar (default), resize to `1024x768`, click `Open changes`, switch to `Preview`, close drawer, widen back to `1440x1000` -> confirm Right sidebar stays **closed** on desktop, and clicking `Toggle workspace tools` opens directly to `Preview`.
+   - At `1440x1000`, close Left sidebar, resize to `1024x768`, open Left drawer, switch to `Chats`, close drawer, widen back to `1440x1000` -> confirm Left sidebar stays **closed** on desktop, and clicking `Toggle project navigation` opens directly to `Chats`.
+5. **General Batch 1 Matrix (`1440x1000`, `1280x800`, `1202px`/`1198px`, `1024x768`, `390x844`, `1280x440` with terminal open)**:
+   - Verify pointer & keyboard resize (`Home`/`End`/`Shift+Arrow`), reload persistence (`raybrain.workspace.layout.v1`), corrupt JSON recovery, focus mode restoration, zero horizontal overflow, zero hydration warnings/console errors, and zero background `simTick` timers.
 
 ---
 
-## Screenshots
-- **None captured** (headless browser / Chromium is not present in this environment).
-
----
-
-## Manual Checks Still Required (Browser Checklist — `NOT RUN`)
-Verify in a real browser against `http://localhost:3000` (or the Development App URL):
-1. **Desktop viewports (`1440x1000`, `1280x800`, `1205x900`)**:
-   - Confirm Left sidebar open (`Files` selected), Center (`Chat` selected, local draft editable, `Send` disabled), Right sidebar closed, Terminal closed, zero dashboard cards/agent dock/neural canvas/KPIs, zero page-level horizontal scroll, zero hydration warnings or console errors, and zero `simTick` timers running.
-2. **Breakpoint crossing (`1202px` <-> `1198px`, `1024x768`, `390x844`)**:
-   - Confirm crossing below `1200px` closes desktop grid columns cleanly and switches header toggles to temporary Radix drawers (`Left` or `Right`, never both at once).
-   - Open a drawer, press `Escape`, and verify focus returns to the header toggle button.
-   - Open a drawer below `1200px`, widen viewport above `1200px`, and confirm no lingering backdrop overlay or focus trap remains.
-3. **Collapse, Resize & Persistence**:
-   - Independently toggle Left, Right (`Changes` / `Preview` / `Browser` / `Debug`), and Terminal; confirm views and sizes restore cleanly.
-   - Drag each `ResizeHandle` with pointer and focus each handle to test `ArrowLeft`/`Right`/`Up`/`Down`, `Shift+Arrow`, `Home`, and `End`.
-   - Reload page and verify `raybrain.workspace.layout.v1` restores clamped widths/heights/views, while `focusMode` is NOT persisted.
-   - In DevTools, set `localStorage.setItem("raybrain.workspace.layout.v1", "{bad-json")` (and also extreme numbers like `{"leftWidth":9999}`), reload, and confirm clean recovery with zero horizontal overflow.
-4. **Short Viewport with Terminal Open (e.g., `1280x440`)**:
-   - Open Terminal, resize viewport shorter, confirm terminal shrinks dynamically so center `Chat` stage + composer remain usable, then widen/tall-restore viewport and confirm remembered `220px` (or user-set height) was not overwritten.
-5. **Focus Mode**:
-   - Open both sidebars and terminal, activate `Focus mode`, verify all three hide; exit `Focus mode` and verify all three restore identically.
-
----
-
-## Known Limitations (Expected for Batch 1)
-- Workspace navigation, chat sending, file tree, editor tabs, terminal runtime, Git changes, preview, browser, and debug tools are intentionally unconnected shell states in Batch 1 (wired in Batches 3–9).
-- Secondary pages (`/projects`, `/agents`, `/automations`, `/knowledge`, `/runs`, `/governance`, `/settings/*`) and `⌘K` command palette are deferred to **Batch 2**.
-
----
-
-## Next Proposed Batch
-**Batch 2 — Navigation and Secondary Pages** (Blueprint Sections 5, 21)
+## Known Limitations
+- Chat sending, files/editor, terminal runtime, Git changes, preview, browser, debug, command palette, and secondary routes remain unconnected until Batches 2–9.
+- Browser verification was not executed in this environment (`playwright` / Chromium unavailable).
