@@ -1,5 +1,6 @@
-import CortexOS from "@/components/cortex/cortex-os";
+import { WorkspaceRoot } from "@/components/workspace/workspace-root";
 
 export default function Home() {
-  return <CortexOS />;
+  return <WorkspaceRoot />;
 }
+
