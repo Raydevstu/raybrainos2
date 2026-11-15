@@ -7,7 +7,7 @@ export function WorkspaceTabs() {
   const [draft, setDraft] = useState("");
 
   return (
-    <div className="rb-work-area">
+    <div className="rb-work-area rb-workspace-tabs">
       <div className="rb-tabs-bar">
         <div
           className="rb-tabs-list"
