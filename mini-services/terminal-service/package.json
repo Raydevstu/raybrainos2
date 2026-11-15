@@ -1,0 +1,11 @@
+{
+  "name": "cortexos-terminal-service",
+  "private": true,
+  "scripts": {
+    "dev": "bun --hot index.ts"
+  },
+  "dependencies": {
+    "node-pty": "1.1.0",
+    "socket.io": "^4.8.4"
+  }
+}
